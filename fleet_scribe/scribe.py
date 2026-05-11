@@ -50,8 +50,9 @@ class Scribe:
     
     def snap_gradient(self, actual, predicted):
         """Compute snapped gradient between observation and simulation."""
-        diff = sum(abs(actual.get(k, 0) - predicted.get(k, 0)) 
-                   for k in set(list(actual.keys()) + list(predicted.keys())))
+        numeric_keys = [k for k in set(list(actual.keys()) + list(predicted.keys())) 
+                       if isinstance(actual.get(k), (int, float)) and isinstance(predicted.get(k), (int, float))]
+        diff = sum(abs(actual.get(k, 0) - predicted.get(k, 0)) for k in numeric_keys)
         return math.tanh(diff)  # Normalize to [0, 1]
     
     def run_cycle(self):
