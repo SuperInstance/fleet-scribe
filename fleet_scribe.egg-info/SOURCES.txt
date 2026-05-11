@@ -1,0 +1,9 @@
+README.md
+setup.py
+fleet_scribe/__init__.py
+fleet_scribe/scribe.py
+fleet_scribe.egg-info/PKG-INFO
+fleet_scribe.egg-info/SOURCES.txt
+fleet_scribe.egg-info/dependency_links.txt
+fleet_scribe.egg-info/entry_points.txt
+fleet_scribe.egg-info/top_level.txt
