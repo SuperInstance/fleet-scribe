@@ -48,47 +48,72 @@ class Scribe:
         except Exception as e:
             return {"error": str(e)}
     
-    def snap_gradient(self, actual, predicted):
-        """Compute snapped gradient between observation and simulation."""
-        numeric_keys = [k for k in set(list(actual.keys()) + list(predicted.keys())) 
-                       if isinstance(actual.get(k), (int, float)) and isinstance(predicted.get(k), (int, float))]
-        diff = sum(abs(actual.get(k, 0) - predicted.get(k, 0)) for k in numeric_keys)
-        return math.tanh(diff)  # Normalize to [0, 1]
+    # Three perception triggers
+    TIMERS = {}  # name -> {"ttl": seconds, "expires_at": time, "fired": bool}
+    DEADBANDS = {}  # name -> {"min": float, "max": float}
+    
+    def set_timer(self, name, ttl):
+        """Set a T-minus timer. If it expires without the event, perception triggers."""
+        self.TIMERS[name] = {"ttl": ttl, "expires_at": time.time() + ttl, "fired": False}
+    
+    def fire_event(self, name):
+        """Mark a timed event as fired."""
+        if name in self.TIMERS:
+            self.TIMERS[name]["fired"] = True
+    
+    def set_deadband(self, name, min_val=0, max_val=1):
+        """Set a deadband for a sensor/reading."""
+        self.DEADBANDS[name] = {"min": min_val, "max": max_val}
+    
+    def check_triggers(self, actual):
+        """Check all three perception triggers."""
+        triggers = []
+        
+        # 1. Reading outside simulation bounds
+        for k, v in actual.items():
+            if isinstance(v, (int, float)) and k in self.simulation:
+                expected = self.simulation.get(k, v)
+                deadband = self.DEADBANDS.get(k, {}).get("max", 0.1)
+                if abs(v - expected) > deadband:
+                    triggers.append(("out_of_bounds", k, v, expected))
+        
+        # 2. T-minus expired without event
+        now = time.time()
+        for name, timer in list(self.TIMERS.items()):
+            if now > timer["expires_at"] and not timer["fired"]:
+                triggers.append(("expected_event_missed", name))
+                del self.TIMERS[name]
+        
+        # 3. Unexpected event through deadband
+        for k, v in actual.items():
+            if isinstance(v, (int, float)) and k in self.DEADBANDS:
+                db = self.DEADBANDS[k]
+                if v < db["min"] or v > db["max"]:
+                    triggers.append(("deadband_violation", k, v, db))
+        
+        return triggers
     
     def run_cycle(self):
-        """One perception-action cycle of the Scribe."""
+        """One perception-action cycle. Intelligence sleeps until a trigger fires."""
         actual = self.observe()
         
         if not self.simulation:
-            # First cycle: mirror state to PLATO
-            self.tile_to_plato(
-                self.room,
-                f"Scribe initialized for {self.app}",
-                f"Digital twin builder started for application: {self.app}. "
-                f"Observing state and building PLATO representation."
-            )
+            self.tile_to_plato(self.room, f"Scribe initialized for {self.app}",
+                f"Digital twin builder started for {self.app}.")
             self.simulation = actual
-            return {"status": "initialized", "tiles": self.tiles}
+            return {"status": "initialized"}
         
-        gradient = self.snap_gradient(actual, self.simulation)
+        triggers = self.check_triggers(actual)
         
-        if gradient > 0.1:
-            # Divergence detected — perception triggered
-            self.divergences += 1
-            self.tile_to_plato(
-                self.room,
-                f"Divergence detected: gradient={gradient:.3f}",
-                f"App state diverged from simulation by {gradient:.3f}. "
-                f"Actual: {json.dumps(actual)[:100]}. "
-                f"Predicted: {json.dumps(self.simulation)[:100]}."
-            )
-            # Update simulation
+        if triggers:
+            self.divergences += len(triggers)
+            for t in triggers:
+                self.tile_to_plato(self.room, f"Trigger: {t[0]}", f"Triggered: {json.dumps(t)[:200]}")
             self.simulation = actual
-            return {"status": "divergence", "gradient": gradient}
+            return {"status": "perception", "triggers": triggers}
         else:
-            # No divergence — intelligence sleeping
             self.llm_calls_saved += 1
-            return {"status": "stable", "gradient": gradient}
+            return {"status": "sleeping"}
     
     def summary(self):
         return {
@@ -118,7 +143,7 @@ def cli():
     
     for i in range(args.cycles):
         result = scribe.run_cycle()
-        status_icon = {"initialized": "🔄", "divergence": "⚡", "stable": "✅"}
+        status_icon = {"initialized": "🔄", "perception": "⚡", "sleeping": "💤"}
         print(f"  Cycle {i+1}: {status_icon.get(result['status'], '❓')} {result['status']}")
         time.sleep(args.interval)
     
