@@ -14,7 +14,7 @@ setup(
     entry_points={"console_scripts": ["scribe=fleet_scribe.scribe:cli"]},
     python_requires=">=3.8",
     install_requires=[
-        "plato-sdk>=2.0.0",
+        "plato-sdk>=1.8.9",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
