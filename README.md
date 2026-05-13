@@ -1,85 +1,53 @@
-# 📝 The Scribe
+# Fleet Scribe
 
-> One command. Sits beside any app. Builds a PLATO twin.
+Your AI just re-read every file in your project. All 40,000 tokens. Again. For the third time today. Nothing changed. It cost you money and time to learn what you already knew.
+
+This is the problem fleet-scribe fixes.
+
+Most AI systems reprocess everything every time. Expensive. Slow. Wasteful. fleet-scribe implements the **One Delta principle**: only perceive when the gradient changes. If the data hasn't moved, don't think about it. Cache the stable parts. Compile the predictable. Automate the routine. Spend compute only on what's actually different from a moment ago.
+
+## How It Works
+
+```python
+from scribe import Scribe
+
+scribe = Scribe()
+deltas = scribe.watch(current_state)
+# Returns only what changed since last check
+```
+
+Like a motion sensor for computation. The ship's log that only writes when something happens.
+
+## Modules
+
+| Module | What it does |
+|--------|-------------|
+| `core.py` | Delta detection: compare current state to cached baseline, report only changes above threshold |
+| `cache.py` | Persistent cache: store baselines on disk, auto-prune stale entries, track hit/miss stats |
+| `compile.py` | Pattern detection: find stable patterns in history (constants, cycles, trends), compile them to optimized rules |
+| `automate.py` | Action automation: trigger actions when deltas match registered patterns, with throttling |
 
 ## Quick Start
 
 ```bash
-pip3 install fleet-scribe
-scribe --app my_app
+pip install fleet-scribe
 ```
 
-## How It Works
+```python
+from scribe import Scribe
 
-The Scribe is **the on-ramp to the Common Space Pattern.** It mirrors any application's state into PLATO as a persistent, object-permanent tile room.
+scribe = Scribe()
+last_state = {}
 
-```
-scribe --app my_app
-    │
-    ├── MIRROR — reads files, processes, system state
-    ├── SNAP   — detects changes as gradient Δ
-    ├── TILE   — writes Δ to PLATO room scribe-my_app/
-    ├── PERCEIVE — if gradient > threshold, triggers LLM
-    └── COMPILE — patterns become scripts (One Delta)
-```
-
-Every app gets its own PLATO room. Every tile persists. Every agent and every human sees the same objects in the same space.
-
-## Architecture
-
-| Concept | Implementation |
-|---------|---------------|
-| App state | File system watcher + process scanner |
-| Gradient | Ratio-based delta detection (0 to ∞) |
-| Threshold | Default 0.15, configurable via --threshold |
-| PLATO room | scribe-{app} (auto-created on first tile) |
-| Perception | Gradient Δ > threshold → detailed tile |
-| Compilation | Repeating patterns → FLUX bytecode |
-
-## CLI
-
-```
-scribe --app my_app              # Continuous mirroring (default 5s interval)
-scribe --app my_app --once       # Single snapshot
-scribe --app my_app --threshold 0.3   # Higher threshold = less perception
-scribe --app my_app --interval 10     # Check every 10s
-scribe --app my_app --dir ./src ./tests  # Watch specific dirs
+while True:
+    current = collect_sensors()
+    deltas = scribe.watch(current, baseline=last_state)
+    if deltas:
+        respond_to_changes(deltas)
+    last_state = current
+    time.sleep(10)
 ```
 
-## Output
+## License
 
-```
-📝 Scribe watching: my_app
-   Room: scribe-my_app
-   PLATO: http://localhost:8847
-   Threshold: 0.15
-
-[H:MM:SS] Cycle 7 — mirroring my_app...
-   ✅ gradient=0.082 / predicted=0.091 / changes=2
-   📝 tiled to scribe-my_app/
-      ✏️ ./src/main.rs (20480→21024B)
-
-[H:MM:SS] Cycle 12 — mirroring my_app...
-   ⚠️ gradient=0.310 / predicted=0.085 / changes=5
-   📝 tiled to scribe-my_app/
-      ⚠️ Perception trigger — gradient exceeded threshold
-```
-
-## The Scribe in the Common Space
-
-The Scribe is the bridge between any application and the PLATO model. Once an app is scribed:
-
-- **Agents** read scribe-{app} room tiles as memory
-- **Humans** see the app's state in ScummVM/terrain views
-- **The app itself** gains persistent, queryable object memory
-- **The Scribe is a single claw** — it writes tiles. The model reads them.
-
-It's the fastest way to give any existing application a PLATO twin.
-
-## Publishing
-
-```
-pip3 install build twine
-python3 -m build
-twine upload dist/*
-```
+Apache 2.0 — Cocapn fleet infrastructure.
