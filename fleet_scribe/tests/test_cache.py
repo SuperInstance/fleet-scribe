@@ -61,20 +61,28 @@ class TestFileCache:
         result = cache.auto_prune(ttl_seconds=0.01)
         assert result["removed"] >= 1
 
-    @pytest.mark.xfail(reason="test isolation: works in isolation, fails in suite")
     def test_auto_prune_removes_stale(self):
-        # Manually create an old entry by manipulating creation time
-        self.cache.set("stale", "old_value")
-        # Overwrite the file with an old timestamp
-        path = self.cache._key_path("stale")
-        with open(path) as f:
-            entry = json.load(f)
-        entry["_created_at"] = time.time() - 1000  # 1000 seconds ago
-        with open(path, "w") as f:
-            json.dump(entry, f)
+        # Use a fresh tempdir so this test is fully isolated from other tests
+        import shutil
+        tmpdir = tempfile.mkdtemp()
+        try:
+            cache = FileCache(tmpdir)
+            cache.set("stale", "old_value")
+            # Overwrite the file with an old timestamp
+            path = cache._key_path("stale")
+            with open(path) as f:
+                entry = json.load(f)
+            old_time = time.time() - 1000  # 1000 seconds ago
+            entry["_created_at"] = old_time
+            with open(path, "w") as f:
+                json.dump(entry, f)
+            # Also update the in-memory index so auto_prune sees the old timestamp
+            cache._index["stale"] = {"created_at": old_time, "size_bytes": cache._index["stale"]["size_bytes"]}
 
-        result = self.cache.auto_prune(ttl_seconds=100)
-        assert result["removed"] >= 1
+            result = cache.auto_prune(ttl_seconds=100)
+            assert result["removed"] >= 1
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_no_expiry_without_ttl(self):
         self.cache.set("forever", "value")
