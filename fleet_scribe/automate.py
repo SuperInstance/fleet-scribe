@@ -156,7 +156,7 @@ class ActionExecutor:
         """Write a tile to a PLATO room."""
         import urllib.request
 
-        Plato_URL = action.target.get("url", "http://localhost:8847")
+        Plato_URL = action.target.get("url", "https://plato.purplepincher.org")
         room = action.target.get("room", "scribe-default")
         question = payload.get("question", "automated tile")
         answer = payload.get("answer", json.dumps(payload))

@@ -26,7 +26,7 @@ import urllib.request
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-PLATO_URL = "http://localhost:8847"
+PLATO_URL = "https://plato.purplepincher.org"
 DEFAULT_CYCLES = 0  # 0 = infinite
 DEFAULT_INTERVAL = 5  # seconds between cycles
 DEFAULT_THRESHOLD = 0.15
