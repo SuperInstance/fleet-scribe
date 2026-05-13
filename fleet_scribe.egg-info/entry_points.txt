@@ -1,3 +1,2 @@
 [console_scripts]
 scribe = fleet_scribe.scribe:cli
-
