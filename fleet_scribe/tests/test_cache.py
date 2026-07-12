@@ -1,7 +1,6 @@
 """Tests for fleet_scribe.cache — FileCache."""
 
 import json
-import os
 import time
 import tempfile
 import pytest

@@ -9,7 +9,6 @@ This module wires together:
     3. Throttling (cooldown per pattern to avoid flooding)
 """
 
-import hashlib
 import json
 import queue
 import subprocess
@@ -17,7 +16,7 @@ import threading
 import time
 import urllib.request
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List
 
 
 # ── Action types ─────────────────────────────────────────────────────────────

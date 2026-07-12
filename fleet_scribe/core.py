@@ -5,8 +5,8 @@ Only perceive when the gradient changes. Cache everything. Compile stable parts.
 
 import hashlib
 import json
-import struct
-from typing import Any, Dict, List, Optional, Tuple, Union
+from difflib import SequenceMatcher
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -163,15 +163,9 @@ class DeltaDetection:
         current_lines = current.splitlines(keepends=True)
         baseline_lines = baseline.splitlines(keepends=True)
 
-        # Compute line-level diff using LCS approach
-        added_lines = []
-        removed_lines = []
-        common_lines = []
-
-        # Proper LCS-based line diff
-        from difflib import SequenceMatcher
+        # Line-level diff via difflib's LCS-based opcode stream
         matcher = SequenceMatcher(None, baseline_lines, current_lines)
-        
+
         added_lines = []
         removed_lines = []
         common_lines = []
@@ -186,8 +180,6 @@ class DeltaDetection:
             elif tag == 'replace':
                 removed_lines.extend(range(i1, i2))
                 added_lines.extend(range(j1, j2))
-
-
 
         # Levenshtein distance at line level
         edit_distance = len(added_lines) + len(removed_lines)
@@ -300,6 +292,6 @@ class DeltaDetection:
             return float(result["edit_distance"])
 
         # Type mismatch or other
-        if type(current) != type(baseline):
+        if type(current) is not type(baseline):
             return 1.0
         return 0.0

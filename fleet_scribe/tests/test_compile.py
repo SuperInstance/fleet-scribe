@@ -1,7 +1,5 @@
 """Tests for fleet_scribe.compile — Pattern detection and compilation."""
 
-import pytest
-import time
 from fleet_scribe.compile import (
     Pattern,
     detect_stable_patterns,
