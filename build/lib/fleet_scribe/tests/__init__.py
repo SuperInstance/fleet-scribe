@@ -1,1 +1,0 @@
-"""fleet_scribe.tests — test suite for fleet_scribe."""
