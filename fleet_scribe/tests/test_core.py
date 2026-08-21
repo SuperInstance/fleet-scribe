@@ -43,12 +43,12 @@ class TestDeltaDetection:
         assert result["changed"]["a"]["after"] == self.detector._repr(10)
 
     def test_threshold_suppresses_small_changes(self):
-        # threshold=0.1 means values must change by at least 0.1
+        # threshold=0.1 means values must change by at least 0.1 (absolute)
         d = DeltaDetection(threshold=0.1)
         state = {"x": 1.05, "y": 2}
         baseline = {"x": 1.0, "y": 2}
         result = d.delta(state, baseline)
-        # 0.05 relative change is below threshold
+        # |1.05 - 1.0| = 0.05 is below the 0.1 threshold, so suppressed
         assert "x" not in result["changed"]
 
     def test_magnitude_accumulates(self):
@@ -144,11 +144,24 @@ class TestDeltaDetection:
         result = d.delta(state, baseline)
         assert "x" in result["changed"]
 
-    def test_threshold_high_suppresses_all(self):
+    def test_threshold_above_change_suppresses_it(self):
+        # A threshold higher than the change magnitude should suppress the
+        # change entirely: nothing lands in 'changed' and magnitude stays 0.
+        d = DeltaDetection(threshold=100.0)
+        state = {"x": 50}
+        baseline = {"x": 1}
+        result = d.delta(state, baseline)
+        assert "x" not in result["changed"]
+        assert result["magnitude"] == 0.0
+
+    def test_threshold_below_change_reports_it(self):
+        # Sanity check the other side: a change above threshold is reported
+        # and its magnitude accumulates.
         d = DeltaDetection(threshold=100.0)
         state = {"x": 200}
         baseline = {"x": 1}
         result = d.delta(state, baseline)
+        assert "x" in result["changed"]
         assert result["magnitude"] == 199.0
 
     # ── Repr safety ──────────────────────────────────────────────────────────

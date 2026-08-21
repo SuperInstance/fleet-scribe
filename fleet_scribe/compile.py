@@ -9,10 +9,10 @@ This module:
     3. Compiles patterns into fast check functions
 """
 
-import math
 import statistics
+import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 
 # ── Pattern types ────────────────────────────────────────────────────────────
@@ -203,8 +203,6 @@ def compile(pattern: Pattern) -> CompiledRule:
 
 
 # ── Pattern detection helpers ─────────────────────────────────────────────────
-
-import time
 
 
 def _flatten_keys(

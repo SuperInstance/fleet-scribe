@@ -1,7 +1,6 @@
 """Tests for fleet_scribe.automate — Action automation."""
 
 import time
-import pytest
 from fleet_scribe.automate import (
     Action,
     Automator,
