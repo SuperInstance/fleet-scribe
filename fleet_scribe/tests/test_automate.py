@@ -1,12 +1,13 @@
 """Tests for fleet_scribe.automate — Action automation."""
 
 import time
+
 from fleet_scribe.automate import (
-    Action,
-    Automator,
     ACTION_FUNCTION,
     ACTION_HTTP,
     ACTION_SHELL,
+    Action,
+    Automator,
 )
 
 

@@ -1,12 +1,12 @@
 """Tests for fleet_scribe.compile — Pattern detection and compilation."""
 
 from fleet_scribe.compile import (
-    Pattern,
-    detect_stable_patterns,
-    compile,
     PATTERN_CONSTANT,
     PATTERN_CYCLE,
     PATTERN_TREND,
+    Pattern,
+    compile,
+    detect_stable_patterns,
 )
 
 

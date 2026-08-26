@@ -1,7 +1,8 @@
 """Tests for fleet_scribe.core — DeltaDetection."""
 
-import pytest
 import numpy as np
+import pytest
+
 from fleet_scribe.core import DeltaDetection
 
 

@@ -2,11 +2,12 @@
 
 Only perceive when the gradient changes. Cache everything. Compile stable parts.
 """
+from __future__ import annotations
 
 import hashlib
 import json
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import numpy as np
 
@@ -33,15 +34,15 @@ class DeltaDetection:
                        Default 0.0 means report all changes.
         """
         self.threshold = threshold
-        self._float_buffer: List[np.ndarray] = []
+        self._float_buffer: list[np.ndarray] = []
 
     # ── Core delta detection ─────────────────────────────────────────────────
 
     def delta(
         self,
-        state: Dict[str, Any],
-        baseline: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        state: dict[str, Any],
+        baseline: dict[str, Any],
+    ) -> dict[str, Any]:
         """Compare current state to baseline, return only what changed.
 
         Returns a dict with keys:
@@ -59,7 +60,7 @@ class DeltaDetection:
         Returns:
             Dict with 'added', 'removed', 'changed', 'magnitude'
         """
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "added": {},
             "removed": {},
             "changed": {},
@@ -103,7 +104,7 @@ class DeltaDetection:
         self,
         current: np.ndarray,
         baseline: np.ndarray,
-    ) -> Tuple[np.ndarray, float]:
+    ) -> tuple[np.ndarray, float]:
         """Compare two float arrays, return changed indices and total magnitude.
 
         Uses element-wise relative difference. NaN in either array counts as change.
@@ -147,7 +148,7 @@ class DeltaDetection:
         self,
         current: str,
         baseline: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Compare two text strings, report character-level changes.
 
         Returns edit distance, changed line ranges, and a summary.
@@ -201,7 +202,7 @@ class DeltaDetection:
 
     # ── State fingerprinting ─────────────────────────────────────────────────
 
-    def cache_key(self, state: Union[Dict[str, Any], str]) -> str:
+    def cache_key(self, state: dict[str, Any] | str) -> str:
         """Generate a deterministic hash key for state.
 
         For dicts: serializes with sorted keys and deterministic ordering.
@@ -248,7 +249,7 @@ class DeltaDetection:
             return f"dict[len={len(value)}]"
         try:
             return json.dumps(value, sort_keys=True)[:200]
-        except Exception:
+        except Exception:  # noqa: BLE001 — deliberate fallback: any non-serializable value degrades to repr()
             return repr(value)[:200]
 
     def _magnitude(self, value: Any) -> float:
