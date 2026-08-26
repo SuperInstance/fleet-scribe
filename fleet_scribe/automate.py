@@ -16,8 +16,7 @@ import threading
 import time
 import urllib.request
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
-
+from typing import Any
 
 # ── Action types ─────────────────────────────────────────────────────────────
 
@@ -61,7 +60,7 @@ class ActionExecutor:
 
     def __init__(self, max_workers: int = 4):
         self._q: queue.Queue = queue.Queue()
-        self._workers: List[threading.Thread] = []
+        self._workers: list[threading.Thread] = []
         self._running = False
         self._max_workers = max_workers
 
@@ -82,7 +81,7 @@ class ActionExecutor:
             self._q.put(None)  # poison pill
         self._workers.clear()
 
-    def submit(self, action: Action, payload: Dict[str, Any]) -> None:
+    def submit(self, action: Action, payload: dict[str, Any]) -> None:
         """Submit an action for async execution."""
         self._q.put((action, payload))
 
@@ -99,7 +98,7 @@ class ActionExecutor:
             except queue.Empty:
                 continue
 
-    def _execute(self, action: Action, payload: Dict[str, Any]) -> None:
+    def _execute(self, action: Action, payload: dict[str, Any]) -> None:
         """Execute a single action with the given payload."""
         try:
             if action.action_type == ACTION_FUNCTION:
@@ -112,16 +111,16 @@ class ActionExecutor:
                 self._exec_plato(action, payload)
             else:
                 print(f"[Automator] Unknown action type: {action.action_type}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — deliberate error boundary: a failing action must not kill the worker thread
             print(f"[Automator] Action failed: {e}")
 
-    def _exec_function(self, action: Action, payload: Dict[str, Any]) -> None:
+    def _exec_function(self, action: Action, payload: dict[str, Any]) -> None:
         """Call a Python function."""
         fn = action.target
         if callable(fn):
             fn(payload)
 
-    def _exec_http(self, action: Action, payload: Dict[str, Any]) -> None:
+    def _exec_http(self, action: Action, payload: dict[str, Any]) -> None:
         """Send an HTTP request."""
         url = action.target
         method = payload.get("_http_method", "POST")
@@ -137,7 +136,7 @@ class ActionExecutor:
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
 
-    def _exec_shell(self, action: Action, payload: Dict[str, Any]) -> None:
+    def _exec_shell(self, action: Action, payload: dict[str, Any]) -> None:
         """Run a shell command. Template variables from payload are substituted."""
         cmd = action.target
         # Simple template substitution: {{key}} → value
@@ -149,9 +148,10 @@ class ActionExecutor:
             shell=True,
             capture_output=True,
             timeout=30,
+            check=False,  # explicit: non-zero exit is not fatal to the automator
         )
 
-    def _exec_plato(self, action: Action, payload: Dict[str, Any]) -> None:
+    def _exec_plato(self, action: Action, payload: dict[str, Any]) -> None:
         """Write a tile to a PLATO room."""
         import urllib.request
 
@@ -176,7 +176,7 @@ class ActionExecutor:
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 json.loads(resp.read())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — best-effort tiling; network failures are logged and swallowed
             print(f"[Automator] PLATO tile write failed: {e}")
 
 
@@ -210,10 +210,10 @@ class Automator:
     """
 
     def __init__(self, max_workers: int = 4):
-        self._rules: Dict[str, PatternAction] = {}
+        self._rules: dict[str, PatternAction] = {}
         self._executor = ActionExecutor(max_workers=max_workers)
         self._executor.start()
-        self._fire_count: Dict[str, int] = {}
+        self._fire_count: dict[str, int] = {}
 
     def on_delta(
         self,
@@ -243,7 +243,7 @@ class Automator:
         )
         self._rules[pattern] = PatternAction(pattern_sig=pattern, action=action)
 
-    def watch(self, delta_result: Dict[str, Any], state: Dict[str, Any]) -> List[str]:
+    def watch(self, delta_result: dict[str, Any], state: dict[str, Any]) -> list[str]:
         """Process a delta result and fire any matching registered actions.
 
         Args:
@@ -263,11 +263,7 @@ class Automator:
             should_fire = False
             if sig == "*":
                 should_fire = delta_magnitude > 0
-            elif sig in delta_result.get("changed", {}):
-                should_fire = True
-            elif sig in delta_result.get("added", {}):
-                should_fire = True
-            elif sig in delta_result.get("removed", {}):
+            elif sig in delta_result.get("changed", {}) or sig in delta_result.get("added", {}) or sig in delta_result.get("removed", {}):
                 should_fire = True
 
             if should_fire:
@@ -282,9 +278,9 @@ class Automator:
     def _build_payload(
         self,
         sig: str,
-        delta_result: Dict[str, Any],
-        state: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        delta_result: dict[str, Any],
+        state: dict[str, Any],
+    ) -> dict[str, Any]:
         """Build the payload dict passed to an action."""
         # Determine what changed for this signature
         changed = delta_result.get("changed", {}).get(sig, {})
@@ -306,7 +302,7 @@ class Automator:
         self._executor.stop()
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Return automator statistics."""
         return {
             "rules_registered": len(self._rules),

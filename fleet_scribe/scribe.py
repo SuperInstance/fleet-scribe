@@ -14,6 +14,7 @@ Usage:
     scribe --app my_app
     scribe --app my_app --cycles 10 --threshold 0.3
 """
+from __future__ import annotations
 
 import argparse
 import json
@@ -21,8 +22,8 @@ import os
 import subprocess
 import time
 import urllib.request
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Any
 
 PLATO_URL = "https://plato.purplepincher.org"
 DEFAULT_CYCLES = 0  # 0 = infinite
@@ -38,7 +39,7 @@ class PlatoClient:
     def __init__(self, url: str = PLATO_URL):
         self.url = url.rstrip("/")
 
-    def tile(self, room: str, question: str, answer: str, tags: list = None) -> Optional[str]:
+    def tile(self, room: str, question: str, answer: str, tags: list | None = None) -> str | None:
         data = {
             "room": room,
             "question": question[:200],
@@ -56,16 +57,16 @@ class PlatoClient:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 result = json.loads(resp.read())
                 return result.get("tile_id")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — deliberate error boundary: tiling is best-effort, never fatal
             print(f"  ⚠️ PLATO tile error: {e}")
             return None
 
-    def room_tiles(self, room: str, limit: int = 10) -> List[Dict]:
+    def room_tiles(self, room: str, limit: int = 10) -> list[dict]:
         try:
             with urllib.request.urlopen(f"{self.url}/room/{room}?limit={limit}", timeout=10) as resp:
                 data = json.loads(resp.read())
                 return data.get("tiles", [])
-        except Exception:
+        except Exception:  # noqa: BLE001 — deliberate fallback: unreadable room yields no tiles
             return []
 
 
@@ -74,17 +75,17 @@ class PlatoClient:
 class AppMirror:
     """Mirrors an application's state to PLATO tiles"""
 
-    def __init__(self, app_name: str, watch_dirs: List[str]):
+    def __init__(self, app_name: str, watch_dirs: list[str]):
         self.app_name = app_name
         self.room = f"scribe-{app_name}"
         self.watch_dirs = watch_dirs
-        self.files: Dict[str, str] = {}  # path → last content hash
+        self.files: dict[str, str] = {}  # path → last content hash
 
-    def snapshot(self) -> Dict[str, Any]:
+    def snapshot(self) -> dict[str, Any]:
         """Take a snapshot of the app's visible state"""
         state = {
             "app": self.app_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "files": {},
             "processes": [],
             "metrics": {},
@@ -112,7 +113,7 @@ class AppMirror:
         # Check running processes matching app name
         try:
             result = subprocess.run(
-                ["ps", "aux"], capture_output=True, text=True, timeout=5
+                ["ps", "aux"], capture_output=True, text=True, timeout=5, check=False
             )
             for line in result.stdout.split("\n"):
                 if self.app_name.lower() in line.lower() and "scribe" not in line.lower():
@@ -124,19 +125,19 @@ class AppMirror:
                             "mem": parts[3],
                             "cmd": parts[10][:60],
                         })
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — process listing is best-effort; failures expected (no ps, non-Linux)
             pass
 
         # System metrics
         try:
             with open("/proc/loadavg") as f:
                 state["metrics"]["load"] = f.read().strip().split()[:3]
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — /proc metrics are best-effort; failures expected (macOS, Windows)
             pass
 
         return state
 
-    def detect_changes(self, new_state: Dict) -> Tuple[float, List[str]]:
+    def detect_changes(self, new_state: dict) -> tuple[float, list[str]]:
         """Detect changes between current and previous state. Returns (gradient, changes)."""
         changes = []
         gradient = 0.0
@@ -176,8 +177,8 @@ class Simulator:
     """Simple simulation engine — predicts next state from current trends"""
 
     def __init__(self):
-        self.history: List[float] = []  # gradient history
-        self.prediction: Optional[float] = None
+        self.history: list[float] = []  # gradient history
+        self.prediction: float | None = None
 
     def predict(self, gradient: float) -> float:
         """Predict next gradient based on history. Returns expected gradient."""
@@ -239,7 +240,7 @@ def cli():
             break
 
         try:
-            timestamp = datetime.utcnow().strftime("%H:%M:%S")
+            timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
             print(f"[{timestamp}] Cycle {cycle} — mirroring {args.app}...")
 
             # 1. MIRROR — snapshot app state
@@ -302,7 +303,7 @@ def cli():
         except KeyboardInterrupt:
             print("\n📝 Scribe stopped.")
             break
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — deliberate error boundary: scribe must survive bad cycles and keep watching
             print(f"  ❌ Error: {e}")
 
         time.sleep(args.interval)

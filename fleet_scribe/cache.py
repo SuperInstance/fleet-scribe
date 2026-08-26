@@ -2,12 +2,13 @@
 
 Stores baselines on disk as JSON. Auto-prunes stale entries. Tracks hit/miss stats.
 """
+from __future__ import annotations
 
 import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 
 class FileCache:
@@ -26,7 +27,7 @@ class FileCache:
 
     _META_KEY = "__meta__"
 
-    def __init__(self, cache_dir: Optional[str] = None):
+    def __init__(self, cache_dir: str | None = None):
         """Initialize cache with a directory.
 
         Args:
@@ -39,7 +40,7 @@ class FileCache:
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
         # In-memory index to avoid hitting disk for every has() call
-        self._index: Dict[str, Dict[str, Any]] = {}
+        self._index: dict[str, dict[str, Any]] = {}
         self._hits = 0
         self._misses = 0
 
@@ -47,7 +48,7 @@ class FileCache:
 
     # ── Public API ─────────────────────────────────────────────────────────
 
-    def get(self, key: str) -> Tuple[Optional[Any], Optional[float]]:
+    def get(self, key: str) -> tuple[Any | None, float | None]:
         """Get a value from the cache.
 
         Returns:
@@ -64,7 +65,7 @@ class FileCache:
         age = time.time() - created_at
         return entry.get("value"), age
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: float | None = None) -> None:
         """Store a value in the cache.
 
         Args:
@@ -105,7 +106,7 @@ class FileCache:
                 count += 1
         return count
 
-    def auto_prune(self, ttl_seconds: float) -> Dict[str, int]:
+    def auto_prune(self, ttl_seconds: float) -> dict[str, int]:
         """Remove all entries older than ttl_seconds.
 
         Also removes entries whose _ttl has expired.
@@ -144,7 +145,7 @@ class FileCache:
     # ── Statistics ─────────────────────────────────────────────────────────
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Return cache statistics."""
         total = self._hits + self._misses
         hit_rate = self._hits / total if total > 0 else 0.0
@@ -173,7 +174,7 @@ class FileCache:
         safe = digest[:8].hex()
         return self._cache_dir / f"{safe}.json"
 
-    def _read_entry(self, key: str) -> Optional[Dict[str, Any]]:
+    def _read_entry(self, key: str) -> dict[str, Any] | None:
         """Read an entry from disk without touching the index."""
         path = self._key_path(key)
         if not path.exists():
@@ -184,7 +185,7 @@ class FileCache:
         except (json.JSONDecodeError, OSError):
             return None
 
-    def _write_entry(self, key: str, entry: Dict[str, Any]) -> None:
+    def _write_entry(self, key: str, entry: dict[str, Any]) -> None:
         """Write an entry to disk and update the index."""
         path = self._key_path(key)
         with open(path, "w") as f:
@@ -219,7 +220,7 @@ class FileCache:
         with open(idx_path, "w") as f:
             json.dump(self._index, f)
 
-    def _oldest_entry_age(self) -> Optional[float]:
+    def _oldest_entry_age(self) -> float | None:
         """Return age of the oldest entry in seconds, or None if empty."""
         if not self._index:
             return None
