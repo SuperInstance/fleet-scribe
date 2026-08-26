@@ -1,8 +1,10 @@
 # Fleet Scribe
 
+![The Scribe's Desk](assets/images/gallery-fleet-scribe.jpg)
 Python library implementing the **One Delta** principle: only perceive when the
 gradient changes. Cache everything, detect only what changes, compile stable
 patterns once, and automate the predictable responses.
+ ed2e68c (imagery: hero — the scribe's desk, brass telegraph-key nib and ledger tape in amber lamplight, navy dark (owned pipeline: sdxl-turbo + nighttime lora @0.8, seed 42))
 
 ## Status
 
