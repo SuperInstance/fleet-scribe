@@ -1,0 +1,6 @@
+# Ruff config — pins the target to the oldest Python the CI matrix tests.
+# The package claims >=3.8 in setup.py, but 3.9 is the oldest version CI
+# actually exercises; bare PEP 604 (X | Y) syntax without a __future__
+# import would crash at import time on 3.9/3.8, so fixes must go through
+# `from __future__ import annotations`.
+target-version = "py39"

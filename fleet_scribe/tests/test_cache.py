@@ -1,9 +1,11 @@
 """Tests for fleet_scribe.cache — FileCache."""
 
 import json
-import time
 import tempfile
+import time
+
 import pytest
+
 from fleet_scribe.cache import FileCache
 
 
@@ -132,7 +134,7 @@ class TestFileCache:
         self.cache.set("persist", {"key": "value"})
         # Create a new cache instance pointing at same dir
         cache2 = FileCache(self.tmpdir)
-        value, age = cache2.get("persist")
+        value, _age = cache2.get("persist")
         assert value == {"key": "value"}
 
     def test_complex_values(self):

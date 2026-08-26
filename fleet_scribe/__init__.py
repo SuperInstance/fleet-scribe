@@ -20,23 +20,24 @@ Quick start:
     deltas = scribe.watch(current_state)
     scribe.compile_all(history)
 """
+from __future__ import annotations
 
-from .core import DeltaDetection
+from .automate import Action, Automator
 from .cache import FileCache
-from .compile import Pattern, CompiledRule, detect_stable_patterns, compile
-from .automate import Automator, Action
+from .compile import CompiledRule, Pattern, compile, detect_stable_patterns
+from .core import DeltaDetection
 
 __all__ = [
-    "Scribe",
+    "Action",
+    "Automator",
+    "CompiledRule",
     "DeltaDetection",
     "FileCache",
     "Pattern",
-    "CompiledRule",
-    "detect_stable_patterns",
-    "compile",
-    "Automator",
-    "Action",
+    "Scribe",
     "__version__",
+    "compile",
+    "detect_stable_patterns",
 ]
 
 __version__ = "0.1.0"
@@ -44,7 +45,7 @@ __version__ = "0.1.0"
 
 # ── Main Scribe class ─────────────────────────────────────────────────────────
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class Scribe:
@@ -68,7 +69,7 @@ class Scribe:
 
     def __init__(
         self,
-        cache_dir: Optional[str] = None,
+        cache_dir: str | None = None,
         threshold: float = 0.0,
         baseline_key: str = "default:baseline",
     ):
@@ -86,8 +87,8 @@ class Scribe:
         self.detector = DeltaDetection(threshold=threshold)
         self.automator = Automator()
 
-        self._baseline: Optional[Dict[str, Any]] = None
-        self._patterns: List[Any] = []
+        self._baseline: dict[str, Any] | None = None
+        self._patterns: list[Any] = []
         self._observation_count = 0
 
         # Try to load existing baseline from cache
@@ -95,7 +96,7 @@ class Scribe:
         if baseline_val is not None:
             self._baseline = baseline_val
 
-    def watch(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def watch(self, state: dict[str, Any]) -> dict[str, Any]:
         """Compare current state against baseline, return deltas.
 
         This is the main entry point for the observation loop. On the first
@@ -134,12 +135,12 @@ class Scribe:
 
         return deltas
 
-    def set_baseline(self, state: Dict[str, Any]) -> None:
+    def set_baseline(self, state: dict[str, Any]) -> None:
         """Manually set the baseline state."""
         self._baseline = dict(state)
         self.cache.set(self._baseline_key, self._baseline)
 
-    def compile_all(self, history: List[Dict[str, Any]]) -> List[Any]:
+    def compile_all(self, history: list[dict[str, Any]]) -> list[Any]:
         """Analyze history and compile stable patterns.
 
         Args:
@@ -156,7 +157,7 @@ class Scribe:
         return compiled
 
     @property
-    def patterns(self) -> List[Any]:
+    def patterns(self) -> list[Any]:
         """Return the list of detected patterns from last compile_all() call."""
         return self._patterns
 
@@ -166,7 +167,7 @@ class Scribe:
         return self._observation_count
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Return combined statistics from cache, detector, and automator."""
         return {
             "cache": self.cache.stats,

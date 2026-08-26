@@ -8,12 +8,12 @@ This module:
     2. Packages them into Pattern objects with confidence scores
     3. Compiles patterns into fast check functions
 """
+from __future__ import annotations
 
 import statistics
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
-
+from typing import Any, Callable
 
 # ── Pattern types ────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ class Pattern:
     frequency: float = 0.0
     last_seen: float = 0.0
     confidence: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def is_constant(self) -> bool:
         return self.pattern_type == PATTERN_CONSTANT
@@ -76,10 +76,10 @@ class CompiledRule:
 
 # ── Pattern detection ─────────────────────────────────────────────────────────
 
-State = Dict[str, Any]
+State = dict[str, Any]
 
 
-def detect_stable_patterns(history: List[State]) -> List[Pattern]:
+def detect_stable_patterns(history: list[State]) -> list[Pattern]:
     """Analyze state history and return all detected stable patterns.
 
     Looks for three kinds of stability:
@@ -97,10 +97,10 @@ def detect_stable_patterns(history: List[State]) -> List[Pattern]:
     if len(history) < 2:
         return []
 
-    patterns: List[Pattern] = []
+    patterns: list[Pattern] = []
 
     # Collect all keys across all states
-    all_keys: List[str] = []
+    all_keys: list[str] = []
     for state in history:
         for key in _flatten_keys(state):
             if key not in all_keys:
@@ -206,9 +206,9 @@ def compile(pattern: Pattern) -> CompiledRule:
 
 
 def _flatten_keys(
-    d: Dict[str, Any],
+    d: dict[str, Any],
     prefix: str = "",
-) -> List[str]:
+) -> list[str]:
     """Flatten a nested dict into dot-path keys."""
     result = []
     for k, v in d.items():
@@ -219,7 +219,7 @@ def _flatten_keys(
     return result
 
 
-def _get_nested(d: Dict[str, Any], key: str) -> Any:
+def _get_nested(d: dict[str, Any], key: str) -> Any:
     """Get a value from a nested dict using dot-path key."""
     parts = key.split(".")
     current = d
@@ -231,7 +231,7 @@ def _get_nested(d: Dict[str, Any], key: str) -> Any:
     return current
 
 
-def _detect_constant(key: str, values: List[Any], now: float) -> Optional[Pattern]:
+def _detect_constant(key: str, values: list[Any], now: float) -> Pattern | None:
     """Detect if all values are identical (constant)."""
     if not values:
         return None
@@ -255,10 +255,10 @@ def _detect_constant(key: str, values: List[Any], now: float) -> Optional[Patter
 
 def _detect_cycle(
     key: str,
-    values: List[float],
+    values: list[float],
     n_observations: int,
     now: float,
-) -> Optional[Pattern]:
+) -> Pattern | None:
     """Detect periodic (oscillating) patterns using autocorrelation."""
     if len(values) < 4:
         return None
@@ -310,7 +310,7 @@ def _detect_cycle(
                     "n_observations": n_observations,
                 },
             )
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 — any stats/math failure means "no cycle pattern"; None is the contract
         pass
 
     return None
@@ -318,9 +318,9 @@ def _detect_cycle(
 
 def _detect_trend(
     key: str,
-    values: List[float],
+    values: list[float],
     now: float,
-) -> Optional[Pattern]:
+) -> Pattern | None:
     """Detect monotonic (always-up or always-down) trends."""
     if len(values) < 3:
         return None
